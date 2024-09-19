@@ -4,16 +4,20 @@ import asyncio
 from scrapy.crawler import CrawlerRunner
 from scrapy.signalmanager import dispatcher
 from scrapy import signals
+from twisted.internet import asyncioreactor
 
 import pandas as pd
 
 # Importar os spiders
 from spiders.mercado_livre_spider import MercadoLivreSpider
 from spiders.kabum_spider import KabumSpider
-# Importe aqui os outros spiders
 
-# Configurar o loop de eventos
+# Configurar o loop de eventos para o Twisted e asyncio
 nest_asyncio.apply()
+try:
+    asyncioreactor.install()
+except Exception as e:
+    print(f"Erro ao instalar o reactor: {e}")
 loop = asyncio.get_event_loop()
 
 st.title('Comparador de Preços')
@@ -28,16 +32,14 @@ if produto:
         def crawler_results(item, response, spider):
             resultados.append(item)
 
-        # Conectar o sinal de item_passed ao coletor de resultados
+        # Conectar o sinal de item_scraped ao coletor de resultados
         dispatcher.connect(crawler_results, signal=signals.item_scraped)
 
         # Função assíncrona para executar os spiders
         async def crawl():
             runner = CrawlerRunner()
-            # Executar os spiders
             await runner.crawl(MercadoLivreSpider, produto=produto)
             await runner.crawl(KabumSpider, produto=produto)
-            # Adicione aqui os outros spiders
 
         loop.run_until_complete(crawl())
 

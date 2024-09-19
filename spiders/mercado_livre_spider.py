@@ -4,8 +4,9 @@ class MercadoLivreSpider(scrapy.Spider):
     name = 'mercado_livre'
 
     custom_settings = {
-        'DOWNLOAD_DELAY': 1,
-        'CONCURRENT_REQUESTS_PER_DOMAIN': 2,
+        'DOWNLOAD_DELAY': 2,  # Delay de 2 segundos entre requisições
+        'CONCURRENT_REQUESTS_PER_DOMAIN': 1,  # Apenas 1 requisição por vez
+        'USER_AGENT': 'ComparadorPrecosBot (+http://seusite.com)'
     }
 
     def __init__(self, produto='', **kwargs):
