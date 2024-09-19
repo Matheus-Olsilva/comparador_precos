@@ -1,15 +1,22 @@
 import streamlit as st
-import threading
+import asyncio
 import pandas as pd
 from scrapy.crawler import CrawlerRunner
+from scrapy.utils.log import configure_logging
 from scrapy.signalmanager import dispatcher
 from scrapy import signals
-from twisted.internet import reactor
-from twisted.internet.error import ReactorAlreadyRunning, ReactorNotRestartable
 
-# Importar os spiders
+# Import your spiders
 from spiders.mercado_livre_spider import MercadoLivreSpider
 from spiders.kabum_spider import KabumSpider
+
+from twisted.internet import asyncioreactor
+
+# Install the Twisted asyncio reactor
+try:
+    asyncioreactor.install()
+except Exception:
+    pass
 
 st.title('Comparador de Preços')
 
@@ -19,27 +26,24 @@ if produto:
     with st.spinner('Buscando informações...'):
         resultados = []
 
-        # Função para coletar itens extraídos pelos spiders
+        # Function to collect scraped items
         def crawler_results(item, response, spider):
             resultados.append(item)
 
-        # Conectar o sinal de item_scraped ao coletor de resultados
+        # Connect the item_scraped signal
         dispatcher.connect(crawler_results, signal=signals.item_scraped)
 
-        # Função para rodar o Scrapy em uma thread separada
-        def run_crawler():
+        # Async function to run spiders
+        async def run_spiders():
             runner = CrawlerRunner()
-            runner.crawl(MercadoLivreSpider, produto=produto)
-            runner.crawl(KabumSpider, produto=produto)
-            try:
-                reactor.run(installSignalHandlers=False)
-            except ReactorAlreadyRunning:
-                pass  # Se o reactor já estiver rodando, não faça nada
+            await runner.crawl(MercadoLivreSpider, produto=produto)
+            await runner.crawl(KabumSpider, produto=produto)
+        
+        # Run the spiders
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(run_spiders())
 
-        # Rodar os crawlers em uma thread separada
-        threading.Thread(target=run_crawler).start()
-
-        # Processar os resultados
+        # Process the results
         if resultados:
             df = pd.DataFrame(resultados)
             preco_medio = df['preco'].mean()
