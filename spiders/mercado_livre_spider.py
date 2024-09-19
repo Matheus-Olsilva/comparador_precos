@@ -2,13 +2,10 @@ import scrapy
 
 class MercadoLivreSpider(scrapy.Spider):
     name = 'mercado_livre'
-
+ 
     custom_settings = {
-        'DOWNLOAD_DELAY': 2,  # Delay de 2 segundos entre requisições
-        'CONCURRENT_REQUESTS_PER_DOMAIN': 1,  # Apenas 1 requisição por vez
-        'USER_AGENT': 'ComparadorPrecosBot (+http://seusite.com)'
+        'REQUEST_FINGERPRINTER_IMPLEMENTATION': '2.7'
     }
-
     def __init__(self, produto='', **kwargs):
         super().__init__(**kwargs)
         self.produto = produto
