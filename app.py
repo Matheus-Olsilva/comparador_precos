@@ -1,24 +1,14 @@
 import streamlit as st
-import nest_asyncio
-import asyncio
+import threading
+import pandas as pd
 from scrapy.crawler import CrawlerRunner
 from scrapy.signalmanager import dispatcher
 from scrapy import signals
-from twisted.internet import asyncioreactor
-
-import pandas as pd
+from twisted.internet import reactor
 
 # Importar os spiders
 from spiders.mercado_livre_spider import MercadoLivreSpider
 from spiders.kabum_spider import KabumSpider
-
-# Configurar o loop de eventos para o Twisted e asyncio
-nest_asyncio.apply()
-try:
-    asyncioreactor.install()
-except Exception as e:
-    print(f"Erro ao instalar o reactor: {e}")
-loop = asyncio.get_event_loop()
 
 st.title('Comparador de Preços')
 
@@ -35,13 +25,19 @@ if produto:
         # Conectar o sinal de item_scraped ao coletor de resultados
         dispatcher.connect(crawler_results, signal=signals.item_scraped)
 
-        # Função assíncrona para executar os spiders
-        async def crawl():
+        # Função para rodar o Scrapy em uma thread separada
+        def run_crawler():
             runner = CrawlerRunner()
-            await runner.crawl(MercadoLivreSpider, produto=produto)
-            await runner.crawl(KabumSpider, produto=produto)
+            runner.crawl(MercadoLivreSpider, produto=produto)
+            runner.crawl(KabumSpider, produto=produto)
+            reactor.run(installSignalHandlers=False)  # Evita conflitos com o reactor
 
-        loop.run_until_complete(crawl())
+        # Rodar os crawlers em uma thread separada
+        threading.Thread(target=run_crawler).start()
+
+        # Esperar até que o crawler finalize
+        while reactor.running:
+            pass
 
         # Processar os resultados
         if resultados:
