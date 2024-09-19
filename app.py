@@ -5,6 +5,7 @@ from scrapy.crawler import CrawlerRunner
 from scrapy.signalmanager import dispatcher
 from scrapy import signals
 from twisted.internet import reactor
+from twisted.internet.error import ReactorAlreadyRunning, ReactorNotRestartable
 
 # Importar os spiders
 from spiders.mercado_livre_spider import MercadoLivreSpider
@@ -30,14 +31,13 @@ if produto:
             runner = CrawlerRunner()
             runner.crawl(MercadoLivreSpider, produto=produto)
             runner.crawl(KabumSpider, produto=produto)
-            reactor.run(installSignalHandlers=False)  # Evita conflitos com o reactor
+            try:
+                reactor.run(installSignalHandlers=False)
+            except ReactorAlreadyRunning:
+                pass  # Se o reactor já estiver rodando, não faça nada
 
         # Rodar os crawlers em uma thread separada
         threading.Thread(target=run_crawler).start()
-
-        # Esperar até que o crawler finalize
-        while reactor.running:
-            pass
 
         # Processar os resultados
         if resultados:
