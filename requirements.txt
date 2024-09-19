@@ -1,0 +1,4 @@
+streamlit
+scrapy
+nest_asyncio
+pandas
